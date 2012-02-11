@@ -6,8 +6,8 @@
 
 ## Overview
 
-This short script is designed to help automate grading of programming
-assignments.
+A short python script designed to help automate grading of programming
+assignments.  [Full documentation is available here!][aghome]
 
 ## Details
 
@@ -43,9 +43,5 @@ assignments.
 							Default: "scores"
 
 
-For full details, please see the [autograder homepage][aghome].
-
-
-<!--  links  -->
 
 [aghome]: http://www-cs.ccny.cuny.edu/~wes/autograder/readme.html
