@@ -42,7 +42,10 @@ assignments.  **[Full documentation is available here!][aghome]**
 							Filename to store the tab-delimited scores.
 							Default: "scores"
 	  -a, --allrequired 	Indicates all implementation files are required.
-
+	  -f, --force 			Force regrade, even if files are up to date.
+							Note: this can also be accomplished by changing the
+							output file: --o="aNewFile"
+	  
 
 
 [aghome]: http://www-cs.ccny.cuny.edu/~wes/autograder/readme.html

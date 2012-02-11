@@ -28,24 +28,27 @@ parser.add_argument('-s','--testscript',dest='testscript', default='./test.sh',
         help='Test script to produce delimited output of tests.')
 parser.add_argument('-k','--delimiter',dest='delimiter', default='@',
         help='Delimiter used to separate tests in the output files.')
-parser.add_argument('-o','--scoresfile',dest='scoresfile', default='scores',
+parser.add_argument('-o','--scoresfile',dest='scoresfile', default='',
         help="Filename to store the tab-delimited scores.")
 parser.add_argument('-a','--allrequired',dest='allrequired', default=0,
         help="Indicates all implementation files are required.", action='count')
+parser.add_argument('-f','--force',dest='force', default=0, action='count',
+        help="Force a regrade, even if '_result.txt' is up to date.")
 parser.add_argument('implfiles', nargs='+',
         help="Name of students' implementation file(s), e.g. 'hello.cpp'.")
 args = parser.parse_args()
 
 implFiles = args.implfiles
-implFile = args.implfiles[0]
+mainFile = args.implfiles[0]
 mainDir = args.maindir
 tooLong = args.toolong
 logFile = args.logfile
 makestr = args.makestr
 testScript = args.testscript
 delim = args.delimiter if args.delimiter != "" else None
-scoresFile = args.scoresfile
+scoresFile = args.scoresfile if args.scoresfile != "" else mainFile + "_scores"
 allrequired = args.allrequired
+forceRegrade = args.force
 
 # if a makestring and log file are supplied, redirect output of make command:
 if makestr != "" and logFile != "":
@@ -53,6 +56,19 @@ if makestr != "" and logFile != "":
 
 tmpProc = None # hack; using a global to pass data around
 
+# TODO: check the timestamps and don't re-grade assignments
+#       whose "_result.txt" is already up to date.  Override
+#       with a -f --force option.  This requires storage of
+#       the scores database between iterations.  Or, you could
+#       just write a file for the score in the local dir.
+# TODO: You might at times want to give extra points (or fewer)
+#       after a closer examination of the code.  In this case,
+#       you should manually edit the scores file.  Make sure this
+#       is *not overwritten* the next time the autograder runs.
+#       That's a good argument for doing things this way: use the
+#       scores file as the database; re-grade based on --force,
+#       or on modification time of files.  --force will undo any
+#       edits to the scores file...
 # TODO: test.
 
 
@@ -62,11 +78,19 @@ def threadWrap():
     tmpProc.communicate()
 
 def main():
+    # we may need to write forceRegrade here, so import from global scope:
+    global forceRegrade
     os.chdir(mainDir)
-    scores = {} #empty dictionary for scores.
+    # create / read dictionary for scores:
+    scores = {}
+    if os.path.exists(scoresFile):
+        with open(scoresFile,'r') as f:
+            scores = dict(map(str.split,f.readlines()))
+    else:
+        forceRegrade = 1
+        # if the scores file is missing, it seems recomputation is needed.
     for root,dirs,files in os.walk("."):
         for d in dirs:
-            scores[d] = 0
             resultMsg = ""
             # run tests, and update the grades.
             # move files one by one to the current directory (if they exist)
@@ -87,6 +111,12 @@ def main():
                 pass
             print("Processing " + d)
             try:
+                # record the time the result was last created
+                resultFile = os.path.join(d,mainFile + "_result.txt")
+                rmtime = 0 # this would be really old.
+                if os.path.exists(resultFile):
+                    rmtime = os.path.getmtime(resultFile)
+                up2date = True
                 for ifile in implFiles:
                     # get rid of the old one:
                     if os.path.exists(ifile):
@@ -95,6 +125,8 @@ def main():
                     sfile = os.path.join(d,ifile)
                     if os.path.exists(sfile):
                         SH.copyfile(sfile,ifile)
+                        if os.path.getmtime(sfile) > rmtime:
+                            up2date = False
                     elif allrequired:
                         print(d + " didn't do their work")
                         resultMsg = "Assignment not turned in."
@@ -102,6 +134,10 @@ def main():
                     else:
                         print("Warning: " + sfile + " missing.")
 
+                # skip this file if we've already done it:
+                if up2date and not forceRegrade:
+                    print("Skipping; grade already up to date")
+                    continue
                 # now, if applicable, try to build the program using the
                 # specified make string:
                 if makestr != "":
@@ -145,8 +181,9 @@ def main():
             finally:
                 # write a report of whatever happened.
                 score = int(round((float(nRight)/nTotal)*100))
-                scores[d] = score
-                with open(os.path.join(d,implFile + "_result.txt"),'w') as f:
+                if not up2date or forceRegrade:
+                    scores[d] = score
+                with open(os.path.join(d,mainFile + "_result.txt"),'w') as f:
                     f.write(resultMsg + "\n\n")
                     f.write("Compiler output:\n\n")
                     with open(logFile,'r') as fs:
