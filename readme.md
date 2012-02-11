@@ -7,7 +7,7 @@
 ## Overview
 
 A short python script designed to help automate grading of programming
-assignments.  [Full documentation is available here!][aghome]
+assignments.  **[Full documentation is available here!][aghome]**
 
 ## Details
 
