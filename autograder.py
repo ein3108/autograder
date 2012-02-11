@@ -30,8 +30,10 @@ parser.add_argument('-k','--delimiter',dest='delimiter', default='@',
         help='Delimiter used to separate tests in the output files.')
 parser.add_argument('-o','--scoresfile',dest='scoresfile', default='scores',
         help="Filename to store the tab-delimited scores.")
+parser.add_argument('-a','--allrequired',dest='allrequired', default=0,
+        help="Indicates all implementation files are required.", action='count')
 parser.add_argument('implfiles', nargs='+',
-        help="Name of students' implementation file, e.g. 'hello.cpp'.")
+        help="Name of students' implementation file(s), e.g. 'hello.cpp'.")
 args = parser.parse_args()
 
 implFiles = args.implfiles
@@ -43,6 +45,7 @@ makestr = args.makestr
 testScript = args.testscript
 delim = args.delimiter if args.delimiter != "" else None
 scoresFile = args.scoresfile
+allrequired = args.allrequired
 
 # if a makestring and log file are supplied, redirect output of make command:
 if makestr != "" and logFile != "":
@@ -85,13 +88,19 @@ def main():
             print("Processing " + d)
             try:
                 for ifile in implFiles:
+                    # get rid of the old one:
+                    if os.path.exists(ifile):
+                        os.remove(ifile)
+                    # try to copy the new one:
                     sfile = os.path.join(d,ifile)
                     if os.path.exists(sfile):
                         SH.copyfile(sfile,ifile)
-                    else:
+                    elif allrequired:
                         print(d + " didn't do their work")
                         resultMsg = "Assignment not turned in."
                         raise UserWarning
+                    else:
+                        print("Warning: " + sfile + " missing.")
 
                 # now, if applicable, try to build the program using the
                 # specified make string:

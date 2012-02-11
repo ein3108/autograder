@@ -12,7 +12,7 @@ assignments.  **[Full documentation is available here!][aghome]**
 ## Details
 
 	usage: ag.py [-h] [-d MAINDIR] [-t TOOLONG] [-l LOGFILE] [-m MAKESTR]
-				 [-s TESTSCRIPT] [-k DELIMITER] [-o SCORESFILE]
+				 [-s TESTSCRIPT] [-k DELIMITER] [-o SCORESFILE] [-a]
 				 implfiles [implfiles ...]
 
 	positional arguments:
@@ -41,6 +41,7 @@ assignments.  **[Full documentation is available here!][aghome]**
 	  -o SCORES, --scoresfile=SCORES
 							Filename to store the tab-delimited scores.
 							Default: "scores"
+	  -a, --allrequired 	Indicates all implementation files are required.
 
 
 
