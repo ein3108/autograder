@@ -56,19 +56,6 @@ if makestr != "" and logFile != "":
 
 tmpProc = None # hack; using a global to pass data around
 
-# TODO: check the timestamps and don't re-grade assignments
-#       whose "_result.txt" is already up to date.  Override
-#       with a -f --force option.  This requires storage of
-#       the scores database between iterations.  Or, you could
-#       just write a file for the score in the local dir.
-# TODO: You might at times want to give extra points (or fewer)
-#       after a closer examination of the code.  In this case,
-#       you should manually edit the scores file.  Make sure this
-#       is *not overwritten* the next time the autograder runs.
-#       That's a good argument for doing things this way: use the
-#       scores file as the database; re-grade based on --force,
-#       or on modification time of files.  --force will undo any
-#       edits to the scores file...
 # TODO: test.
 
 
@@ -89,119 +76,138 @@ def main():
     else:
         forceRegrade = 1
         # if the scores file is missing, it seems recomputation is needed.
-    for root,dirs,files in os.walk("."):
-        for d in dirs:
-            resultMsg = ""
-            # run tests, and update the grades.
-            # move files one by one to the current directory (if they exist)
-            # and run the test script on each one.  To prevent the previous
-            # student's work from affecting the test, remove the old output
-            # and make sure the interpreter does not produce compiled
-            # bytecode.
-            try:
-                # clear the log and the output file:
-                f = open(logFile,'w')
-                f.close()
-                f = open("output",'w')
-                f.close()
-                # try to run make clean; if it fails, just move on
-                if makestr != "":
-                    os.spawnl(os.P_WAIT,makestr,"make","clean")
-            except:
-                pass
-            print("Processing " + d)
-            try:
-                # record the time the result was last created
-                resultFile = os.path.join(d,mainFile + "_result.txt")
-                rmtime = 0 # this would be really old.
-                if os.path.exists(resultFile):
-                    rmtime = os.path.getmtime(resultFile)
-                up2date = True
-                for ifile in implFiles:
-                    # get rid of the old one:
-                    if os.path.exists(ifile):
-                        os.remove(ifile)
-                    # try to copy the new one:
-                    sfile = os.path.join(d,ifile)
-                    if os.path.exists(sfile):
-                        SH.copyfile(sfile,ifile)
-                        if os.path.getmtime(sfile) > rmtime:
-                            up2date = False
-                    elif allrequired:
-                        print(d + " didn't do their work")
-                        resultMsg = "Assignment not turned in."
-                        raise UserWarning
-                    else:
-                        print("Warning: " + sfile + " missing.")
 
-                # skip this file if we've already done it:
-                if up2date and not forceRegrade:
-                    print("Skipping; grade already up to date")
-                    continue
-                # now, if applicable, try to build the program using the
-                # specified make string:
-                if makestr != "":
-                    retcode = subprocess.call(makestr, shell=True)
-                    if retcode:
-                        print(d + " failed to build x_x")
-                        resultMsg = "Failed to build x_x"
-                        raise UserWarning
-
-                # now run the test script and compare output
-                # we want something simple, like the following:
-                # subprocess.call("python -B " + testScript)
-                # resultMsg,nRight,nTotal = compare("")
-                # however, this is no good when people's programs break,
-                # or run into infinite loops.  So we must monitor the
-                # thread in which it runs, and kill it after too much
-                # time has passed.
-
-                ranForever = False
-                th = TH.Thread(target=threadWrap)
-                th.start()
-                th.join(tooLong)
-                if th.is_alive():
-                    print ("infinite loop. killing thread...")
-                    tmpProc.terminate()
-                    th.join() # wait for thread to terminate
-                    ranForever = True
-                del th
-                if ranForever:
-                    resultMsg = "Program ran too long. Infinite loop?\n"
+    # now walk the top level directories:
+    for d in os.listdir("."):
+        if not os.path.isdir(d):
+            continue
+        resultMsg = ""
+        ioerr = False  # to check what happened in the finally clause.
+        # run tests, and update the grades.
+        # move files one by one to the current directory (if they exist)
+        # and run the test script on each one.  To prevent the previous
+        # student's work from affecting the test, remove the old output
+        # and make sure the interpreter does not produce compiled
+        # bytecode.
+        try:
+            # clear the log and the output file:
+            f = open(logFile,'w')
+            f.close()
+            f = open("output",'w')
+            f.close()
+            # try to run make clean; if it fails, just move on
+            if makestr != "":
+                os.spawnl(os.P_WAIT,makestr,"make","clean")
+        except:
+            pass
+        print("Processing " + d)
+        try:
+            # record the time the result was last created
+            resultFile = os.path.join(d,mainFile + "_result.txt")
+            rmtime = 0 # this would be really old.
+            if os.path.exists(resultFile):
+                rmtime = os.path.getmtime(resultFile)
+            up2date = True
+            for ifile in implFiles:
+                # get rid of the old one:
+                if os.path.exists(ifile):
+                    os.remove(ifile)
+                # try to copy the new one:
+                sfile = os.path.join(d,ifile)
+                if os.path.exists(sfile):
+                    SH.copyfile(sfile,ifile)
+                    if os.path.getmtime(sfile) > rmtime:
+                        up2date = False
+                elif allrequired:
+                    print(d + " didn't do their work")
+                    resultMsg = "Assignment not turned in."
                     raise UserWarning
                 else:
-                    resultMsg,nRight,nTotal = compare("")
-            except UserWarning:
-                # something went horribly wrong, so set the score to be 0:
-                nRight = 0
-                nTotal = 1
-                # if needed, we can get some error info here?
-                # Note: nothing special about UserWarning; it sounded
-                # nice and I needed an exception.  That's all.
-            finally:
-                # write a report of whatever happened.
-                score = int(round((float(nRight)/nTotal)*100))
-                if not up2date or forceRegrade:
-                    scores[d] = score
-                with open(os.path.join(d,mainFile + "_result.txt"),'w') as f:
-                    f.write(resultMsg + "\n\n")
-                    f.write("Compiler output:\n\n")
-                    with open(logFile,'r') as fs:
-                        f.write(fs.read())
-                    f.write("Score: " + str(nRight) + " out of " + \
-                            str(nTotal) + " = " + str(score) + "%\n\n")
-                    f.write("*************Original submission*************\n\n")
-                    # there might not be a file here, so just ignore any
-                    # errors that are raised.
-                    try:
-                        for ifile in implFiles:
-                            sfile = os.path.join(d,ifile)
-                            f.write("\n\n### " + ifile + ":\n\n")
-                            with open(sfile,'r') as fs:
-                                f.write(fs.read())
-                    except:
-                        pass
-            # return
+                    print("Warning: " + sfile + " missing.")
+
+            # skip this file if we've already done it:
+            if up2date and not forceRegrade:
+                print("Skipping; grade already up to date")
+                continue
+            # now, if applicable, try to build the program using the
+            # specified make string:
+            if makestr != "":
+                retcode = subprocess.call(makestr, shell=True)
+                if retcode:
+                    print(d + " failed to build x_x")
+                    resultMsg = "Failed to build x_x"
+                    raise UserWarning
+
+            # now run the test script and compare output
+            # we want something simple, like the following:
+            # subprocess.call("python -B " + testScript)
+            # resultMsg,nRight,nTotal = compare("")
+            # however, this is no good when people's programs break,
+            # or run into infinite loops.  So we must monitor the
+            # thread in which it runs, and kill it after too much
+            # time has passed.
+
+            ranForever = False
+            th = TH.Thread(target=threadWrap)
+            th.start()
+            th.join(tooLong)
+            if th.is_alive():
+                print ("infinite loop. killing thread...")
+                tmpProc.terminate()
+                th.join() # wait for thread to terminate
+                ranForever = True
+            del th
+            if ranForever:
+                resultMsg = "Program ran too long. Infinite loop?\n"
+                raise UserWarning
+            else:
+                resultMsg,nRight,nTotal = compare("")
+        except UserWarning:
+            # something went horribly wrong, so set the score to be 0:
+            nRight = 0
+            nTotal = 1
+            # if needed, we can get some error info here?
+            # Note: nothing special about UserWarning; it sounded
+            # nice and I needed an exception.  That's all.
+        except IOError as err:
+            # score was not succesfully computed
+            ioerr = True
+            print("IO Error x_x")
+            print(err.message)
+            print("Grading incomplete; after resolving the errors, it " +
+                    "is recommended you run with the --force option " +
+                    "to recompute.")
+            # this is probably serious, and could affect the other grades;
+            # hence we will check for ioerrors in the finally clause, and
+            # break the loop if any are found.  This will still write
+            # whatever results we did manage to compute successfully.
+        finally:
+            # if IOErrors happened, don't write anything
+            if ioerr:
+                break
+            # write a report of whatever happened.
+            if not up2date or forceRegrade:
+                scores[d] = int(round((float(nRight)/nTotal)*100))
+            with open(os.path.join(d,mainFile + "_result.txt"),'w') as f:
+                f.write(resultMsg + "\n\n")
+                f.write("Compiler output:\n\n")
+                with open(logFile,'r') as fs:
+                    f.write(fs.read())
+                f.write("Score: " + str(nRight) + " out of " + \
+                        str(nTotal) + " = " + str(scores[d]) + "%\n\n")
+                f.write("*************Original submission*************")
+                # there might not be a file here, so just ignore any
+                # errors that are raised.
+                try:
+                    for ifile in implFiles:
+                        sfile = os.path.join(d,ifile)
+                        f.write("\n\n###########  " +
+                                ifile + "  ###########\n\n")
+                        with open(sfile,'r') as fs:
+                            f.write(fs.read())
+                except:
+                    pass
+
     with open(scoresFile,'w') as fscores:
         for k in sorted(scores.keys()):
             fscores.write(k + "\t" + str(scores[k]) + "\n")
