@@ -262,7 +262,8 @@ def compare(full_path):
     # pad the student output if necessary
     for i in xrange(off_length - stu_length):
         stu_content.append(delim) # this should never be a right answer.
-    counter = [off_content[i] == stu_content[i] for i in xrange(off_length)]
+    ignores = ' \t\n\r'
+    counter = [off_content[i].strip(ignores) == stu_content[i].strip(ignores) for i in xrange(off_length)]
     
     # Now report results.
     resultstr = ""
@@ -286,8 +287,7 @@ def killSubGroup(pid):
     started with subprocess.popen, except for the python interpreter
     itself, which usually belongs to the same group."""
     # use pgrep to filter, then kill all but pid.
-    pgID = os.getpgid(pid)
-    pgl = os.popen("pgrep -g " + str(pgID)).readlines()
+    pgl = os.popen("pgrep -g " + str(os.getpgid(pid))).readlines()
     doomed = [p for p in map(int,pgl) if p!=pid]
     # now kill them:
     for p in doomed:
