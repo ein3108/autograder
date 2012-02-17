@@ -9,7 +9,8 @@ from __future__ import print_function
 import os
 import shutil as SH
 import subprocess
-import threading as TH
+import signal
+import time
 import argparse as ap
 
 
@@ -54,15 +55,25 @@ forceRegrade = args.force
 if makestr != "" and logFile != "":
     makestr = makestr + " &> " + logFile
 
-tmpProc = None # hack; using a global to pass data around
-
 # TODO: test.
+# TODO: not very happy with the way that processes are currently killed.
+# When the test script is complicated, and say involves piping things around
+# to different programs, it is not enough to just kill the test script, should
+# it go into an infinite loop; there may be child processes left behind, which
+# at best take up resources, and at worst prevent the compilation of other
+# student's code (the executable can get locked).  Current method: pgrep for
+# the group id and kill everything but the python interpreter (which is
+# usually a member of the group @_@)
 
+# Also, there is no wait with timeout in the current version of python, so
+# we resort to polling the process (see pollFreq below).
+# The proper way to do it will be included in python 3.3, which is not yet
+# released:
+# http://docs.python.org/dev/library/subprocess.html
+# http://bugs.python.org/issue5673
 
-def threadWrap():
-    global tmpProc
-    tmpProc = subprocess.Popen(testScript)
-    tmpProc.communicate()
+pollFreq = 5 # how many times per second to poll the testscript process.
+
 
 def main():
     # we may need to write forceRegrade here, so import from global scope:
@@ -138,26 +149,27 @@ def main():
                     resultMsg = "Failed to build x_x"
                     raise UserWarning
 
-            # now run the test script and compare output
+            # now run the test script and compare output vs. soutput
             # we want something simple, like the following:
-            # subprocess.call("python -B " + testScript)
-            # resultMsg,nRight,nTotal = compare("")
+            # subprocess.call(testScript)
             # however, this is no good when people's programs break,
-            # or run into infinite loops.  So we must monitor the
-            # thread in which it runs, and kill it after too much
-            # time has passed.
+            # or run into infinite loops.  So we must monitor the thread
+            # in which it runs, and kill it after too much time has passed.
 
-            ranForever = False
-            th = TH.Thread(target=threadWrap)
-            th.start()
-            th.join(tooLong)
-            if th.is_alive():
-                print ("infinite loop. killing thread...")
-                tmpProc.terminate()
-                th.join() # wait for thread to terminate
-                ranForever = True
-            del th
+            sproc = subprocess.Popen(testScript)
+            ranForever = True
+            for i in xrange(tooLong*pollFreq):
+                if not sproc.poll() is None:
+                    ranForever = False
+                    break
+                time.sleep(1.0/pollFreq)
+
             if ranForever:
+                print ("infinite loop. killing test script...")
+                killSubGroup(os.getpid())
+                sproc.communicate() # wait for process to shut down.
+                time.sleep(.5) # hack; I feel like child processes
+                               # don't always get to close in time.
                 resultMsg = "Program ran too long. Infinite loop?\n"
                 raise UserWarning
             else:
@@ -258,20 +270,29 @@ def compare(full_path):
         resultstr = 'Summary: All tests passed.'
     else:
         # must make plural noun agree with counter
-        if counter.count(False) == 1:
-            failure_spelling = ' failure '
-        else:
-            failure_spelling = ' failures '
+        failure_spelling = ' failure' + ('s ' if counter.count(False) > 1 else ' ')
         resultstr = '\nSummary: Student output has ' + \
                 str(counter.count(False)) + failure_spelling + \
-                'in ' + str(len(counter)) + ' tests.\n\nDetailed report:\n\n'
+                'in ' + str(len(counter)) + ' tests.\n\nDetailed report:\n'
         for i in xrange(len(counter)):
             if counter[i]==False:
-                resultstr += ' Test ' + str(i) + ' failed:\n   Student had:\n\t' + \
-                        stu_content[i] + '\n   Should have:\n\t' + off_content[i]
-            else:
-                resultstr += ' Test ' + str(i) + ' succeeded.'
+                resultstr += '\nTest ' + str(i) + ' failed:\n   Student had:\t' + \
+                        stu_content[i] + '\n   Should have:\t' + off_content[i]
     return resultstr,counter.count(True),off_length
+
+def killSubGroup(pid):
+    """This function will kill all members of pid's group, except
+    for the pid process specified.  The idea is to kill all processes
+    started with subprocess.popen, except for the python interpreter
+    itself, which usually belongs to the same group."""
+    # use pgrep to filter, then kill all but pid.
+    pgID = os.getpgid(pid)
+    pgl = os.popen("pgrep -g " + str(pgID)).readlines()
+    doomed = [p for p in map(int,pgl) if p!=pid]
+    # now kill them:
+    for p in doomed:
+        print ("killing " + str(p))
+        os.kill(p,signal.SIGTERM)
 
 if __name__ == '__main__':
   main()
