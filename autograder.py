@@ -200,25 +200,25 @@ def main():
             # write a report of whatever happened.
             if not up2date or forceRegrade:
                 scores[d] = int(round((float(nRight)/nTotal)*100))
-            with open(os.path.join(d,mainFile + "_result.txt"),'w') as f:
-                f.write(resultMsg + "\n\n")
-                f.write("Compiler output:\n\n")
-                with open(logFile,'r') as fs:
-                    f.write(fs.read())
-                f.write("Score: " + str(nRight) + " out of " + \
-                        str(nTotal) + " = " + str(scores[d]) + "%\n\n")
-                f.write("*************Original submission*************")
-                # there might not be a file here, so just ignore any
-                # errors that are raised.
-                try:
-                    for ifile in implFiles:
-                        sfile = os.path.join(d,ifile)
-                        f.write("\n\n###########  " +
-                                ifile + "  ###########\n\n")
-                        with open(sfile,'r') as fs:
-                            f.write(fs.read())
-                except:
-                    pass
+                with open(os.path.join(d,mainFile + "_result.txt"),'w') as f:
+                    f.write(resultMsg + "\n\n")
+                    f.write("Compiler output:\n\n")
+                    with open(logFile,'r') as fs:
+                        f.write(fs.read())
+                    f.write("Score: " + str(nRight) + " out of " + \
+                            str(nTotal) + " = " + str(scores[d]) + "%\n\n")
+                    f.write("*************Original submission*************")
+                    # there might not be a file here, so just ignore any
+                    # errors that are raised.
+                    try:
+                        for ifile in implFiles:
+                            sfile = os.path.join(d,ifile)
+                            f.write("\n\n###########  " +
+                                    ifile + "  ###########\n\n")
+                            with open(sfile,'r') as fs:
+                                f.write(fs.read())
+                    except:
+                        pass
 
     with open(scoresFile,'w') as fscores:
         for k in sorted(scores.keys()):
