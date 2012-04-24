@@ -88,6 +88,9 @@ def main():
         forceRegrade = 1
         # if the scores file is missing, it seems recomputation is needed.
 
+    # make a copy of the environment, which we will modify and send to
+    # the test script, with some of our own variables added.
+    cenv = os.environ.copy()
     # now walk the top level directories:
     for d in os.listdir("."):
         if not os.path.isdir(d):
@@ -156,7 +159,10 @@ def main():
             # or run into infinite loops.  So we must monitor the thread
             # in which it runs, and kill it after too much time has passed.
 
-            sproc = subprocess.Popen(testScript)
+            cenv["AG_current_dir"] = d
+            sproc = subprocess.Popen(testScript, env=cenv)
+            # testScript should have access to the current student's
+            # directory via the AG_current_dir variable.
             ranForever = True
             for i in xrange(tooLong*pollFreq):
                 if not sproc.poll() is None:
