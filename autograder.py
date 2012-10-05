@@ -35,6 +35,8 @@ parser.add_argument('-a','--allrequired',dest='allrequired', default=0,
         help="Indicates all implementation files are required.", action='count')
 parser.add_argument('-f','--force',dest='force', default=0, action='count',
         help="Force a regrade, even if '_result.txt' is up to date.")
+parser.add_argument('--exclude',dest='exclude', nargs='+',
+        help="List of directories (relative to maindir) to exclude.")
 parser.add_argument('implfiles', nargs='+',
         help="Name of students' implementation file(s), e.g. 'hello.cpp'.")
 args = parser.parse_args()
@@ -50,6 +52,7 @@ delim = args.delimiter if args.delimiter != "" else None
 scoresFile = args.scoresfile if args.scoresfile != "" else mainFile + "_scores"
 allrequired = args.allrequired
 forceRegrade = args.force
+excludes = args.exclude
 
 # if a makestring and log file are supplied, redirect output of make command:
 if makestr != "" and logFile != "":
@@ -93,7 +96,7 @@ def main():
     cenv = os.environ.copy()
     # now walk the top level directories:
     for d in os.listdir("."):
-        if not os.path.isdir(d):
+        if (not os.path.isdir(d)) or (d in excludes):
             continue
         resultMsg = ""
         ioerr = False  # to check what happened in the finally clause.
