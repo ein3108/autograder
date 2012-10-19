@@ -31,7 +31,7 @@ parser.add_argument('-k','--delimiter',dest='delimiter', default='@',
         help='Delimiter used to separate tests in the output files.')
 parser.add_argument('-o','--scoresfile',dest='scoresfile', default='',
         help="Filename to store the tab-delimited scores.")
-parser.add_argument('-a','--allrequired',dest='allrequired', default=0,
+parser.add_argument('-p','--missingok',dest='missingok', default=0,
         help="Indicates all implementation files are required.", action='count')
 parser.add_argument('-f','--force',dest='force', default=0, action='count',
         help="Force a regrade, even if '_result.txt' is up to date.")
@@ -50,7 +50,7 @@ makestr = args.makestr
 testScript = args.testscript
 delim = args.delimiter if args.delimiter != "" else None
 scoresFile = args.scoresfile if args.scoresfile != "" else mainFile + "_scores"
-allrequired = args.allrequired
+missingok = args.missingok
 forceRegrade = args.force
 excludes = args.exclude
 
@@ -135,7 +135,7 @@ def main():
                     SH.copyfile(sfile,ifile)
                     if os.path.getmtime(sfile) > rmtime:
                         up2date = False
-                elif allrequired:
+                elif not missingok:
                     print(d + " didn't do their work")
                     resultMsg = "Assignment not turned in."
                     raise UserWarning
