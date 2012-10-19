@@ -32,7 +32,8 @@ parser.add_argument('-k','--delimiter',dest='delimiter', default='@',
 parser.add_argument('-o','--scoresfile',dest='scoresfile', default='',
         help="Filename to store the tab-delimited scores.")
 parser.add_argument('-p','--missingok',dest='missingok', default=0,
-        help="Indicates all implementation files are required.", action='count')
+        help="Attempt to grade, even if some implementation files \
+        are missing.", action='count')
 parser.add_argument('-f','--force',dest='force', default=0, action='count',
         help="Force a regrade, even if '_result.txt' is up to date.")
 parser.add_argument('--exclude',dest='exclude', nargs='+', default=[],

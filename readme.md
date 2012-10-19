@@ -41,7 +41,10 @@ assignments.  **[Full documentation is available here!][aghome]**
 	  -o SCORES, --scoresfile=SCORES
 							Filename to store the tab-delimited scores.
 							Default: "scores"
-	  -a, --allrequired 	Indicates all implementation files are required.
+	  -p, --missingok		Attempt to grade, even if some implementation files
+	  						are missing.
+	  --exclude EXCLUDE [EXCLUDE ...]
+	                        List of directories (relative to maindir) to exclude.
 	  -f, --force 			Force regrade, even if files are up to date.
 							Note: this can also be accomplished by changing the
 							output file: --o="aNewFile"
