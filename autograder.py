@@ -35,7 +35,7 @@ parser.add_argument('-a','--allrequired',dest='allrequired', default=0,
         help="Indicates all implementation files are required.", action='count')
 parser.add_argument('-f','--force',dest='force', default=0, action='count',
         help="Force a regrade, even if '_result.txt' is up to date.")
-parser.add_argument('--exclude',dest='exclude', nargs='+',
+parser.add_argument('--exclude',dest='exclude', nargs='+', default=[],
         help="List of directories (relative to maindir) to exclude.")
 parser.add_argument('implfiles', nargs='+',
         help="Name of students' implementation file(s), e.g. 'hello.cpp'.")
