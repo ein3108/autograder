@@ -100,7 +100,7 @@ def main():
         if (not os.path.isdir(d)) or (d in excludes):
             continue
         resultMsg = ""
-        ioerr = False  # to check what happened in the finally clause.
+        fatalerr = False  # to check what happened in the finally clause.
         # run tests, and update the grades.
         # move files one by one to the current directory (if they exist)
         # and run the test script on each one.  To prevent the previous
@@ -193,7 +193,7 @@ def main():
             # nice and I needed an exception.  That's all.
         except IOError as err:
             # score was not succesfully computed
-            ioerr = True
+            fatalerr = True
             print("IO Error x_x")
             print(err.message)
             print("Grading incomplete; after resolving the errors, it " +
@@ -203,9 +203,12 @@ def main():
             # hence we will check for ioerrors in the finally clause, and
             # break the loop if any are found.  This will still write
             # whatever results we did manage to compute successfully.
+        except Exception as err: # handle any other generic errors.
+            print(err)
+            fatalerr = True
         finally:
-            # if IOErrors happened, don't write anything
-            if ioerr:
+            # if some fatal error happened, don't write anything
+            if fatalerr:
                 break
             # write a report of whatever happened.
             if not up2date or forceRegrade:
