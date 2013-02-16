@@ -305,7 +305,11 @@ def killSubGroup(pid):
     # now kill them:
     for p in doomed:
         print ("killing " + str(p))
-        os.kill(p,signal.SIGTERM)
+        try:
+            os.kill(p,signal.SIGTERM)
+        except OSError:
+            pass
+
 
 if __name__ == '__main__':
   main()
