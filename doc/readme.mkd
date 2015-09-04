@@ -178,7 +178,7 @@ contain exactly this string.
 To invoke the autograder in such a situation, we could populate the main
 directory with the following:
 
-* a straightforward makefile named `makefile` to build `hello.cpp` into the
+* a straightforward makefile to build `hello.cpp` into the
   executable file `hello`;
 * the above script with the name `test.sh`;
 * the solution's output, `soutput` (which just contains the above string of
@@ -198,7 +198,7 @@ running the autograder:
  | | `-hello.cpp
  | |~student4/
  | | `-hello.cpp
- | |-makefile
+ | |-Makefile
  | |-test.sh
  | |-soutput
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -286,7 +286,7 @@ examples, in increasing order of difficulty:
    (some need to be compiled).  In this case, require that students with
    compiled code submit a makefile and set:
    	
-		--makestr="if [ ! -e makefile ]; then echo ; else make; fi"
+		--makestr="if [ ! -e Makefile ]; then echo ; else make; fi"
 		
 	 *Note:* the `echo` will put an empty line in the compiler log, and will
    make sure that the return code of this command is 0 when there is no
@@ -304,14 +304,13 @@ examples, in increasing order of difficulty:
 
 ### Manually updating grades
 
-Sometimes the automatic grading is not perfect, and as you browse though the
-results after it has run, you may determine that a student's work is deserving
-of more (or possibly less) credit.  In this case, you can just update the
+Should you find yourself wanting to alter the automatically assigned grade,
+just update the
 scores file (`--scoresfile`) manually before copying into your spreadsheet.
-Subsequent runs of the autograder will not affect your changes, unless:
+Subsequent runs of the autograder will not affect your changes, **UNLESS:**
 
-**Warning:** If you later on supply the `--force` option, *all* work will be
-re-graded, and your manual changes will be undone in the scores file.
+If you later on supply the `--force` option, *all* work will be
+re-graded, and *your manual changes will be undone* in the scores file!
 
 ### The `--delimiter` option
 
@@ -330,23 +329,23 @@ this behavior and tries to run the test script even if files are missing.
 
 ### Makefiles
 
-For compiled code, the use of makefiles is highly recommended.  If your
+If your
 makefile supports a `clean` target, it will be executed at the start of every
 iteration to clean up the build output from the previous student.  If not, you
 may want to ensure that there are no other leftover object files, etc. lying
-around that might affect the build of the next student's code; only the actual
-source files will be removed by the autograder script.  *Note:* the `make`
-program might handle this without intervention if you can guarantee that the
-newly copied source file has a modification date which is later than the other
-files;  however, I find it safer to just erase all the build output
-completely.  After all, correctness is paramount.
+around that might affect the build of the next student's code (only the
+source files will be removed by the autograder script).^[`make`
+might handle this without intervention if you can guarantee that the
+newly copied source file has a modification date later than the other
+files.  However, it seems safer to just erase all the build output
+completely.  After all, correctness is paramount.]
 
 
 ### Accessing the student directories
 
 At times, it may be useful to read from or write to the student directory from
-the test script, however, the test script is running in the root testing
-directory, and not the student directory, making it difficult to determine
+the test script, however, the test script is running in a directory above the
+student's, making it difficult to determine
 which student's work is currently being graded.  For these scenarios, an
 environment variable is exported called `$AG_current_dir`, which will be set
 to the directory (not absolute) of the student whose work is currently being
@@ -370,9 +369,9 @@ fi
 
 **Important:** I'm sure this goes without saying, but it is not a great idea
 to run unfamiliar code on your machine.^[Who knows -- you might be so tired
-from all the grading that you forgot to think about this...]  I do all my
-grading in a [virtual machine][vbox].  Another (more lightweight) option is to
-make a `chroot` jail.
+from all the grading that you forgot to think about this...]  Thus, grading
+must be done in a virtual machine, `chroot` jail, or similar.^[Personal
+preference: qemu.  Might try LXC if I have the time...]
 
 
 ## Known Limitations
@@ -385,15 +384,15 @@ just a lack of time and necessity.]
 * The output (for the student) is constructed from the first implementation
   file's name, concatenated with the string "_result.txt".
 * The matching for each test is exact (except for stripping whitespace at the
-  end).  To get more flexible pattern matching, I usually format the output of
-  the test script with `awk`.
+  end).  Filtering the output with awk or sed is usually an easy enough fix
+  when exact matching is undesirable.
 
 
 ## Dependencies / Requirements
 
 * Python 2.7
 * A compiler / interpreter for whatever code you are testing
-* Some version of `make` will make life easier
+* `make` will make life easier
 * Should work on most unix/linux platforms
 
 ## Credits
@@ -405,4 +404,3 @@ The `compare()` function was adapted from code by [David Branner][david].
 [pysplit]: http://docs.python.org/library/stdtypes.html#str.split
 [david]: https://bitbucket.org/dpb/
 [p1readme]: p1readme.html
-[vbox]: https://www.virtualbox.org/
