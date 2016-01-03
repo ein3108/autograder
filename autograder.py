@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+#TODO: This script can only grade one problem at a time or a set of problems that have equal amount of points. Improve this to be able to grade multiple questions.
 """
 Autograder.  Compiles and runs student programs, comparing
 output with a standard output file.
 """
 
 # use print() instead of plain print
-from __future__ import print_function 
+from __future__ import print_function
 import os
 import shutil as SH
 import subprocess
@@ -243,7 +244,7 @@ def declare_path():
     """This function is currently a dummy but can later be used to grade a
     whole set of student work, one directory per student in the same path.
     """
-    
+
     # "the_student" is name of a directory in the path
     the_path = the_student = ''
     return the_path + the_student
@@ -257,15 +258,15 @@ def compare(full_path):
     output = "output"
     # First evaluate tests and store results.
     # "counter" will hold True/False in each index, each representing a test
-    counter = [] 
+    counter = []
     try:
         # remember, U recognizes all newlines
-        with open(full_path + solutionOutput, 'U') as filename: 
-            off_content = filename.read().split(delim)
-            off_length = len(off_content)
+        with open(full_path + solutionOutput, 'U') as filename:
+            off_content = filename.read().split(delim) # the split() function automatically appends an empty string at the end.
+            off_length = len(off_content) - 1 # to prohibit '' at the end to be counted as a problem
         with open(full_path + output, 'U') as filename:
             stu_content = filename.read().split(delim)
-            stu_length = len(stu_content)
+            stu_length = len(stu_content) - 1 # same here
     except IOError:
         print('\nIOError reported; exiting. \n\nAre the files "output"'
             'and "soutput" in the right place?\n\nPath was given as',
@@ -277,7 +278,7 @@ def compare(full_path):
         stu_content.append(delim) # this should never be a right answer.
     ignores = ' \t\n\r'
     counter = [off_content[i].strip(ignores) == stu_content[i].strip(ignores) for i in xrange(off_length)]
-    
+
     # Now report results.
     resultstr = ""
     if all(counter):

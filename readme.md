@@ -52,3 +52,13 @@ assignments.  **[Full documentation is available here!][aghome]**
 
 
 [aghome]: http://www-cs.ccny.cuny.edu/~wes/autograder/readme.html
+
+## Modification
+
+1. Fixed a counting error (originally the script was counting the number of problems by 1 more)
+
+1. Utilized the Rscript front-end to grade R programs
+
+## CREDIT
+
+1. @wes1138
